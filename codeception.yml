@@ -1,0 +1,27 @@
+namespace: Sweetchuck\CliCmdBuilder\Test
+
+suites:
+    unit:
+        path: 'unit'
+
+settings:
+    memory_limit: '1024M'
+    colors: true
+    shuffle: true
+    lint: true
+
+paths:
+    tests: tests
+    output: tests/_output
+    support: tests/_support
+    data: tests
+
+extensions:
+    enabled:
+        - 'Codeception\Extension\RunFailed'
+
+coverage:
+    enabled: true
+    whitelist:
+        include:
+            - 'src/*'
