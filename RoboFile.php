@@ -23,11 +23,6 @@ class RoboFile extends Tasks
     protected $codeceptionInfo = [];
 
     /**
-     * @var string[]
-     */
-    protected $codeceptionSuiteNames = [];
-
-    /**
      * @var string
      */
     protected $packageVendor = '';
@@ -222,6 +217,11 @@ class RoboFile extends Tasks
                 'paths' => [
                     'tests' => 'tests',
                     'log' => 'tests/_output',
+                ],
+                'suites' => [
+                    'unit' => [
+                        'path' => 'unit',
+                    ],
                 ],
             ];
         }
@@ -464,22 +464,9 @@ class RoboFile extends Tasks
 
     protected function getCodeceptionSuiteNames(): array
     {
-        if (!$this->codeceptionSuiteNames) {
-            $this->initCodeceptionInfo();
+        $this->initCodeceptionInfo();
 
-            /** @var \Symfony\Component\Finder\Finder $suiteFiles */
-            $suiteFiles = Finder::create()
-                ->in($this->codeceptionInfo['paths']['tests'])
-                ->files()
-                ->name('*.suite.yml')
-                ->depth(0);
-
-            foreach ($suiteFiles as $suiteFile) {
-                $this->codeceptionSuiteNames[] = $suiteFile->getBasename('.suite.yml');
-            }
-        }
-
-        return $this->codeceptionSuiteNames;
+        return array_keys($this->codeceptionInfo['suites']);
     }
 
     protected function validateArgCodeceptionSuiteNames(array $suiteNames): void
