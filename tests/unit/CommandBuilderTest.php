@@ -19,6 +19,35 @@ class CommandBuilderTest extends BuilderTestBase
      */
     protected $builderClass = CommandBuilder::class;
 
+    public function testGetSetConfig(): void
+    {
+        $this->assertSame(
+            [
+                'optionSeparator' => '=',
+                'outputType' => '',
+            ],
+            $this->builder->getConfig()
+        );
+
+        $this->builder->setConfig(['optionSeparator' => ' ']);
+        $this->assertSame(
+            [
+                'optionSeparator' => ' ',
+                'outputType' => '',
+            ],
+            $this->builder->getConfig()
+        );
+
+        $this->builder->setConfig(['outputType' => 'inlineCommand']);
+        $this->assertSame(
+            [
+                'optionSeparator' => ' ',
+                'outputType' => 'inlineCommand',
+            ],
+            $this->builder->getConfig()
+        );
+    }
+
     public function casesBuild(): array
     {
         return [
@@ -85,13 +114,45 @@ class CommandBuilderTest extends BuilderTestBase
                     ],
                 ],
             ],
-            'executable path as string' => [
+            'envVar CliCmdBuilderInterface' => [
+                'A="$(foo \'bar\')"',
+                [
+                    'components' => [
+                        [
+                            'type' => 'envVar',
+                            'name' => 'A',
+                            'value' => (new CommandBuilder())
+                                ->setExecutable('foo')
+                                ->addArgument('bar'),
+                        ],
+                    ],
+                ],
+            ],
+            'executable' => [
                 'my-cmd',
                 [
                     'components' => [
                         [
                             'type' => 'executable',
                             'value' => 'my-cmd',
+                        ],
+                    ],
+                ],
+            ],
+            'executable CliCmdBuilderInterface' => [
+                '$(which php) --ini',
+                [
+                    'components' => [
+                        [
+                            'type' => 'executable',
+                            'value' => (new CommandBuilder())
+                                ->setExecutable('which')
+                                ->addArgument('php', 'single:safe'),
+                        ],
+                        [
+                            'type' => 'option:flag',
+                            'name' => 'ini',
+                            'value' => true,
                         ],
                     ],
                 ],
@@ -222,6 +283,24 @@ class CommandBuilderTest extends BuilderTestBase
                     ],
                 ],
             ],
+            'option:value CliCmdBuilderInterface' => [
+                "a --b=\"$(c)\"",
+                [
+                    'components' => [
+                        [
+                            'type' => 'executable',
+                            'value' => 'a',
+                        ],
+                    ],
+                    'options' => [
+                        [
+                            'b',
+                            (new CommandBuilder())->setExecutable('c'),
+                            'value',
+                        ],
+                    ],
+                ],
+            ],
             'option:value:list empty' => [
                 'a',
                 [
@@ -334,6 +413,42 @@ class CommandBuilderTest extends BuilderTestBase
                     ],
                 ],
             ],
+            'option:value:multi autodetect type' => [
+                "a --b='d' --b='e'",
+                [
+                    'components' => [
+                        [
+                            'type' => 'executable',
+                            'value' => 'a',
+                        ],
+                    ],
+                    'options' => [
+                        ['b', ['c' => false, 'd' => true, 'e' => true]],
+                    ],
+                ],
+            ],
+            'option:value:multi CliCmdBuilderInterface' => [
+                "a --b='c' --b=\"\$(d --e='f')\"",
+                [
+                    'components' => [
+                        [
+                            'type' => 'executable',
+                            'value' => 'a',
+                        ],
+                    ],
+                    'options' => [
+                        [
+                            'b',
+                            [
+                                'c' => true,
+                                'd' => (new CommandBuilder())
+                                    ->setExecutable('d')
+                                    ->addOption('e', 'f'),
+                            ],
+                        ],
+                    ],
+                ],
+            ],
             'components 1' => [
                 "a --b='c' 'd' -- --e='f' 'g'",
                 [
@@ -363,6 +478,85 @@ class CommandBuilderTest extends BuilderTestBase
                         [
                             'type' => 'argument:single:unsafe',
                             'value' => 'g',
+                        ],
+                    ],
+                ],
+            ],
+            'argument:single:unsafe CliCmdBuilderInterface' => [
+                'a "$(b)"',
+                [
+                    'executable' => 'a',
+                    'arguments' => [
+                        [
+                            (new CommandBuilder())->setExecutable('b'),
+                        ],
+                    ],
+                ],
+            ],
+            'argument:single:safe' => [
+                'a "$(b)" c',
+                [
+                    'executable' => 'a',
+                    'arguments' => [
+                        [
+                            (new CommandBuilder())->setExecutable('b'),
+                        ],
+                        [
+                            'c',
+                            'argument:single:safe',
+                        ],
+                    ],
+                ],
+            ],
+            'argument:multi:unsafe' => [
+                'a "$(b)"',
+                [
+                    'executable' => 'a',
+                    'arguments' => [
+                        [
+                            (new CommandBuilder())->setExecutable('b'),
+                        ],
+                    ],
+                ],
+            ],
+            'background' => [
+                "a -b 'c' &",
+                [
+                    'executable' => 'a',
+                    'options' => [
+                        [
+                            '-b',
+                            'c',
+                        ],
+                    ],
+                    'components' => [
+                        [
+                            'type' => 'background',
+                            'value' => true,
+                        ],
+                    ],
+                ],
+            ],
+            'stdInputSource file' => [
+                "a < 'b.txt'",
+                [
+                    'executable' => 'a',
+                    'components' => [
+                        [
+                            'type' => 'stdInputSource',
+                            'value' => 'b.txt',
+                        ],
+                    ],
+                ],
+            ],
+            'stdInputSource forward' => [
+                "a <<< $(/dev/stdin)",
+                [
+                    'executable' => 'a',
+                    'components' => [
+                        [
+                            'type' => 'stdInputSource',
+                            'value' => '<<< $(/dev/stdin)',
                         ],
                     ],
                 ],
@@ -416,6 +610,37 @@ class CommandBuilderTest extends BuilderTestBase
                 ],
                 [
                     'outputType' => 'stringSafe',
+                ],
+            ],
+            'outputType stringUnsafe' => [
+                "docker-compose exec web /bin/bash -c 'foo --bar='\''baz'\'''",
+                [
+                    'components' => [
+                        [
+                            'type' => 'executable',
+                            'value' => 'docker-compose',
+                        ],
+                        [
+                            'type' => 'argument:single:safe',
+                            'value' => 'exec',
+                        ],
+                        [
+                            'type' => 'argument:single:safe',
+                            'value' => 'web',
+                        ],
+                        [
+                            'type' => 'argument:single:safe',
+                            'value' => '/bin/bash',
+                        ],
+                        [
+                            'type' => 'option:value',
+                            'name' => '-c',
+                            'value' => (new CommandBuilder())
+                                ->setOutputType('stringUnsafe')
+                                ->setExecutable('foo')
+                                ->addOption('bar', 'baz'),
+                        ],
+                    ],
                 ],
             ],
             'pipe - string' => [

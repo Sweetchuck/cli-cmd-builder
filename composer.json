@@ -9,6 +9,10 @@
         "optimize-autoloader": true,
         "sort-packages": true
     },
+    "require": {
+        "ext-mbstring": "*",
+        "ext-pcre": "*"
+    },
     "require-dev": {
         "codeception/codeception": "^2.4",
         "consolidation/robo": "^1.3",

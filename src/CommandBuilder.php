@@ -4,7 +4,7 @@ declare(strict_types = 1);
 
 namespace Sweetchuck\CliCmdBuilder;
 
-class CommandBuilder implements CliCmdBuilderInterface
+class CommandBuilder implements CommandBuilderInterface
 {
     /**
      * @var array
@@ -22,13 +22,16 @@ class CommandBuilder implements CliCmdBuilderInterface
      */
     protected $optionSeparator = '=';
 
+    /**
+     * {@inheritdoc}
+     */
     public function getOptionSeparator(): string
     {
         return $this->optionSeparator;
     }
 
     /**
-     * @return $this
+     * {@inheritdoc}
      */
     public function setOptionSeparator(string $value)
     {
@@ -42,16 +45,21 @@ class CommandBuilder implements CliCmdBuilderInterface
     // region outputType
     /**
      * @var string
+     *
+     * @todo Use constants for the available values.
      */
-    protected $outputType = 'unchanged';
+    protected $outputType = '';
 
+    /**
+     * {@inheritdoc}
+     */
     public function getOutputType(): string
     {
         return $this->outputType;
     }
 
     /**
-     * @return $this
+     * {@inheritdoc}
      */
     public function setOutputType(string $value)
     {
@@ -94,6 +102,9 @@ class CommandBuilder implements CliCmdBuilderInterface
         return $this;
     }
 
+    /**
+     * {@inheritdoc}
+     */
     public function addComponents(array $components)
     {
         foreach ($components as $component) {
@@ -103,6 +114,9 @@ class CommandBuilder implements CliCmdBuilderInterface
         return $this;
     }
 
+    /**
+     * {@inheritdoc}
+     */
     public function addComponent(array $component)
     {
         $this->components[] = $component;
@@ -110,6 +124,9 @@ class CommandBuilder implements CliCmdBuilderInterface
         return $this;
     }
 
+    /**
+     * {@inheritdoc}
+     */
     public function addEnvVars(array $envVars)
     {
         foreach ($envVars as $name => $value) {
@@ -119,6 +136,9 @@ class CommandBuilder implements CliCmdBuilderInterface
         return $this;
     }
 
+    /**
+     * {@inheritdoc}
+     */
     public function addEnvVar(string $name, $value)
     {
         $this->addComponent([
@@ -131,9 +151,7 @@ class CommandBuilder implements CliCmdBuilderInterface
     }
 
     /**
-     * @param string|\Sweetchuck\CliCmdBuilder\CliCmdBuilderInterface $executable
-     *
-     * @return $this
+     * {@inheritdoc}
      */
     public function setExecutable($executable)
     {
@@ -146,11 +164,7 @@ class CommandBuilder implements CliCmdBuilderInterface
     }
 
     /**
-     * @param string $name
-     * @param mixed $value
-     * @param string $type
-     *
-     * @return $this
+     * {@inheritdoc}
      */
     public function addOption(string $name, $value = null, ?string $type = null)
     {
@@ -176,10 +190,7 @@ class CommandBuilder implements CliCmdBuilderInterface
     }
 
     /**
-     * @param mixed $value
-     * @param string $type
-     *
-     * @return $this
+     * {@inheritdoc}
      */
     public function addArgument($value, ?string $type = null)
     {
@@ -249,9 +260,12 @@ class CommandBuilder implements CliCmdBuilderInterface
         return 'option:value';
     }
 
+    /**
+     * @param int|string|\Sweetchuck\CliCmdBuilder\CliCmdBuilderInterface $value
+     */
     protected function getArgumentType($value): string
     {
-        return is_iterable($value) ? 'argument:multi:unsafe' : 'argument:single:unsafe';
+        return 'argument:single:unsafe';
     }
 
     /**
@@ -327,32 +341,55 @@ class CommandBuilder implements CliCmdBuilderInterface
                     break;
 
                 case 'option:value':
-                    $components['optsAndArgs']['pattern'][] = Utils::ensureDashPrefix($optionCliName) . "$os%s";
-                    $components['optsAndArgs']['args'][] = ($component['value'] instanceof CliCmdBuilderInterface) ?
-                        $component['value']->build(['outputType' => 'inlineCommandString'])
-                        : escapeshellarg($component['value']);
+                    $pattern = Utils::getOptionNameWithSeparator($optionCliName, $os) . '%s';
+                    $components['optsAndArgs']['pattern'][] = $pattern;
+                    if (($component['value'] instanceof CliCmdBuilderInterface)) {
+                        $config = $component['value']->getConfig();
+                        if (empty($config['outputType'])) {
+                            $config['outputType'] = 'inlineCommandString';
+                        }
+
+                        $components['optsAndArgs']['args'][] = $component['value']->build($config);
+                        break;
+                    }
+
+                    $components['optsAndArgs']['args'][] = escapeshellarg($component['value']);
                     break;
 
                 case 'option:value:list':
                     $values = Utils::filterEnabled($component['value']);
                     if ($values) {
+                        $pattern = Utils::getOptionNameWithSeparator($optionCliName, $os) . '%s';
                         $separator = $option['separator'] ?? ',';
-                        $components['optsAndArgs']['pattern'][] = Utils::ensureDashPrefix($optionCliName) . "$os%s";
-                        $components['optsAndArgs']['args'][] = ($component['value'] instanceof CliCmdBuilderInterface) ?
-                            $component['value']->build(['outputType' => 'inlineCommandString'])
-                            : escapeshellarg(implode($separator, $values));
+                        $components['optsAndArgs']['pattern'][] = $pattern;
+                        $components['optsAndArgs']['args'][] = escapeshellarg(implode($separator, $values));
                     }
                     break;
 
                 case 'option:value:multi':
-                    $values = Utils::filterEnabled($component['value']);
-                    if ($values) {
-                        foreach ($values as $value) {
-                            $components['optsAndArgs']['pattern'][] = Utils::ensureDashPrefix($optionCliName) . "$os%s";
-                            $components['optsAndArgs']['args'][] = ($value instanceof CliCmdBuilderInterface) ?
-                                $value->build(['outputType' => 'inlineCommandString'])
-                                : escapeshellarg($value);
+                    $values = [];
+                    foreach ($component['value'] as $key => $value) {
+                        if ($value === false || $value === null) {
+                            continue;
                         }
+
+                        if ($value === true) {
+                            $value = $key;
+                        }
+
+                        if ($value instanceof  CliCmdBuilderInterface) {
+                            $values[] = $value->build(['outputType' => 'inlineCommandString']);
+
+                            continue;
+                        }
+
+                        $values[] = escapeshellarg($value);
+                    }
+
+                    $pattern = Utils::getOptionNameWithSeparator($optionCliName, $os) . '%s';
+                    foreach ($values as $value) {
+                        $components['optsAndArgs']['pattern'][] = $pattern;
+                        $components['optsAndArgs']['args'][] = $value;
                     }
                     break;
 
@@ -374,29 +411,13 @@ class CommandBuilder implements CliCmdBuilderInterface
                     $components['optsAndArgs']['args'][] = (string) $component['value'];
                     break;
 
-                case 'argument:multi:unsafe':
-                    foreach (Utils::filterEnabled($component['value']) as $value) {
-                        $components['optsAndArgs']['pattern'][] = '%s';
-                        $components['optsAndArgs']['args'][] = ($value instanceof CliCmdBuilderInterface) ?
-                            $value->build(['outputType' => 'inlineCommandString'])
-                            : escapeshellarg($value);
-                    }
-                    break;
-
-                case 'argument:multi:safe':
-                    foreach (Utils::filterEnabled($component['value']) as $value) {
-                        $components['optsAndArgs']['pattern'][] = '%s';
-                        $components['optsAndArgs']['args'][] = (string) $value;
-                    }
-                    break;
-
                 case 'background':
                     $components[$componentGroup] = (bool) $component['value'];
                     break;
 
                 case 'stdInputSource':
                     if ($component['value']) {
-                        $components[$componentGroup] = $component['value'] === '<<< $(</dev/stdin)' ?
+                        $components[$componentGroup] = mb_substr($component['value'], 0, 4) === '<<< ' ?
                             $component['value']
                             : '< ' . escapeshellarg($component['value']);
                     }
@@ -443,6 +464,10 @@ class CommandBuilder implements CliCmdBuilderInterface
 
         if ($components['redirectStdError']) {
             $this->command[] = "2>{$components['redirectStdError']}";
+        }
+
+        if ($components['stdInputSource']) {
+            $this->command[] = $components['stdInputSource'];
         }
 
         if ($components['background']) {

@@ -60,34 +60,34 @@ _custom:
     job__lint_and_test: &job__lint_and_test
         working_directory: '~/repo'
         steps:
-        - 'checkout'
-        -
-            run:
-                <<: *step__run__install_php_extensions
-        -
-            run:
-                <<: *step__run__install_composer
-        -
-            restore_cache:
-                <<: *step__restore_cache
-        -
-            run:
-                <<: *step__run__composer_install
-        -
-            save_cache:
-                <<: *step__save_cache
-        -
-            run:
-                <<: *step__run__linters
-        -
-            run:
-                <<: *step__run__codeception_unit
-        -
-            store_test_results:
-                <<: *step__store_test_results
-        -
-            run:
-                <<: *step__run__codecov
+            - 'checkout'
+            -
+                run:
+                    <<: *step__run__install_php_extensions
+            -
+                run:
+                    <<: *step__run__install_composer
+            -
+                restore_cache:
+                    <<: *step__restore_cache
+            -
+                run:
+                    <<: *step__run__composer_install
+            -
+                save_cache:
+                    <<: *step__save_cache
+            -
+                run:
+                    <<: *step__run__linters
+            -
+                run:
+                    <<: *step__run__codeception_unit
+            -
+                store_test_results:
+                    <<: *step__store_test_results
+            -
+                run:
+                    <<: *step__run__codecov
 
 jobs:
     php701__lint_and_test:
@@ -105,7 +105,7 @@ workflows:
     version: 2
     php701__lint_and_test:
         jobs:
-        - 'php701__lint_and_test'
+            - 'php701__lint_and_test'
     php702__lint_and_test:
         jobs:
-        - 'php702__lint_and_test'
+            - 'php702__lint_and_test'
