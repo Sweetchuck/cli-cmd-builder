@@ -1,11 +1,13 @@
 <?php
 
+declare(strict_types = 1);
+
 namespace Sweetchuck\CliCmdBuilder\Tests\Unit;
 
 use Sweetchuck\CliCmdBuilder\CommandBuilder;
 
 /**
- * @coversDefaultClass \Sweetchuck\CliCmdBuilder\CommandBuilder
+ * @covers \Sweetchuck\CliCmdBuilder\CommandBuilder
  */
 class CommandBuilderTest extends BuilderTestBase
 {
@@ -55,7 +57,7 @@ class CommandBuilderTest extends BuilderTestBase
                 '',
             ],
             'basic' => [
-                "A='a' B='b' my-cmd --dry-run --path#'my-path' 'c' d 1>'/dev/null' 2>&1",
+                "A='a' B='b' my-cmd --dry-run --path#'my-path' --num#'42' 'c' d '42' 1>'/dev/null' 2>&1",
                 [
                     'envVars' => [
                         'A' => 'a',
@@ -71,6 +73,10 @@ class CommandBuilderTest extends BuilderTestBase
                             'path',
                             'my-path',
                         ],
+                        [
+                            'num',
+                            42,
+                        ],
                     ],
                     'arguments' => [
                         [
@@ -80,6 +86,10 @@ class CommandBuilderTest extends BuilderTestBase
                         [
                             'd',
                             'single:safe',
+                        ],
+                        [
+                            42,
+                            'single:unsafe',
                         ],
                     ],
                     'components' => [

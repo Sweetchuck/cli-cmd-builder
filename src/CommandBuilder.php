@@ -308,7 +308,7 @@ class CommandBuilder implements CommandBuilderInterface
                     $components[$componentGroup]['pattern'][] = "{$component['name']}=%s";
                     $components[$componentGroup]['args'][] = ($component['value'] instanceof CliCmdBuilderInterface) ?
                         $component['value']->build(['outputType' => 'inlineCommandString'])
-                        : escapeshellarg($component['value']);
+                        : escapeshellarg((string) $component['value']);
                     break;
 
                 case 'executable':
@@ -323,7 +323,7 @@ class CommandBuilder implements CommandBuilderInterface
                     }
 
                     if ($component['value']) {
-                        $components[$componentGroup] = escapeshellcmd($component['value']);
+                        $components[$componentGroup] = escapeshellcmd((string) $component['value']);
                     }
                     break;
 
@@ -341,6 +341,10 @@ class CommandBuilder implements CommandBuilderInterface
                     break;
 
                 case 'option:value':
+                    if ($component['value'] === null) {
+                        break;
+                    }
+
                     $pattern = Utils::getOptionNameWithSeparator($optionCliName, $os) . '%s';
                     $components['optsAndArgs']['pattern'][] = $pattern;
                     if (($component['value'] instanceof CliCmdBuilderInterface)) {
@@ -353,7 +357,7 @@ class CommandBuilder implements CommandBuilderInterface
                         break;
                     }
 
-                    $components['optsAndArgs']['args'][] = escapeshellarg($component['value']);
+                    $components['optsAndArgs']['args'][] = escapeshellarg((string) $component['value']);
                     break;
 
                 case 'option:value:list':
@@ -383,7 +387,7 @@ class CommandBuilder implements CommandBuilderInterface
                             continue;
                         }
 
-                        $values[] = escapeshellarg($value);
+                        $values[] = escapeshellarg((string) $value);
                     }
 
                     $pattern = Utils::getOptionNameWithSeparator($optionCliName, $os) . '%s';
@@ -403,7 +407,7 @@ class CommandBuilder implements CommandBuilderInterface
                     $components['optsAndArgs']['pattern'][] = '%s';
                     $components['optsAndArgs']['args'][] = ($component['value'] instanceof CliCmdBuilderInterface) ?
                         $component['value']->build(['outputType' => 'inlineCommandString'])
-                        : escapeshellarg($component['value']);
+                        : escapeshellarg((string) $component['value']);
                     break;
 
                 case 'argument:single:safe':
@@ -419,7 +423,7 @@ class CommandBuilder implements CommandBuilderInterface
                     if ($component['value']) {
                         $components[$componentGroup] = mb_substr($component['value'], 0, 4) === '<<< ' ?
                             $component['value']
-                            : '< ' . escapeshellarg($component['value']);
+                            : '< ' . escapeshellarg((string) $component['value']);
                     }
                     break;
 
@@ -428,7 +432,7 @@ class CommandBuilder implements CommandBuilderInterface
                     if ($component['value']) {
                         $components[$componentGroup] = preg_match('/^&\d$/u', $component['value']) ?
                             $component['value']
-                            : escapeshellarg($component['value']);
+                            : escapeshellarg((string) $component['value']);
                     }
                     break;
 
