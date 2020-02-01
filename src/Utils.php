@@ -11,6 +11,11 @@ class Utils
         return mb_substr($string, 0, 1) === '-' ? $string : "--{$string}";
     }
 
+    /**
+     * @todo Replace this method with ArrayFilterEnbaled.
+     *
+     * @see https://github.com/Sweetchuck/utils/blob/master/src/Filter/ArrayFilterEnabled.php
+     */
     public static function filterEnabled(array $items): array
     {
         return (gettype(reset($items)) === 'boolean') ?

@@ -698,8 +698,12 @@ class CommandBuilderTest extends BuilderTestBase
     /**
      * @dataProvider casesBuild
      */
-    public function testBuild(string $expected, array $props = [], ?array $config = null, array $configOverride = [])
-    {
+    public function testBuild(
+        string $expected,
+        array $props = [],
+        ?array $config = null,
+        array $configOverride = []
+    ) {
         if ($config !== null) {
             $this->builder->setConfig($config);
         }

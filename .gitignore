@@ -2,3 +2,5 @@
 /bin/
 /tests/_output/
 /vendor/
+
+/.git-hooks.local
